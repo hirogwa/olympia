@@ -1,0 +1,1 @@
+Log analytics for highland
