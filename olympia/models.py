@@ -6,16 +6,18 @@ db = SQLAlchemy(app)
 
 
 class LogDay(db.Model):
-    user_id = db.Column(db.Integer, primary_key=True)
+    bucket = db.Column(db.String(63), primary_key=True)
+    key = db.Column(db.String(1024), primary_key=True)
     date = db.Column(db.String(8), primary_key=True)
     resource_key = db.Column(db.String(1024), primary_key=True)
     remote_ip = db.Column(db.String(15), primary_key=True)
     user_agent = db.Column(db.String(65536), primary_key=True)
     download_count = db.Column(db.Integer)
 
-    def __init__(self, user_id, date, resource_key, remote_ip, user_agent,
+    def __init__(self, bucket, key, date, resource_key, remote_ip, user_agent,
                  download_count):
-        self.user_id = user_id
+        self.bucket = bucket
+        self.key = key
         self.date = date
         self.resource_key = resource_key
         self.remote_ip = remote_ip
@@ -24,16 +26,18 @@ class LogDay(db.Model):
 
 
 class LogHour(db.Model):
-    user_id = db.Column(db.Integer, primary_key=True)
+    bucket = db.Column(db.String(63), primary_key=True)
+    key = db.Column(db.String(1024), primary_key=True)
     hour = db.Column(db.String(10), primary_key=True)
     resource_key = db.Column(db.String(1024), primary_key=True)
     remote_ip = db.Column(db.String(15), primary_key=True)
     user_agent = db.Column(db.String(65536), primary_key=True)
     download_count = db.Column(db.Integer)
 
-    def __init__(self, user_id, hour, resource_key, remote_ip, user_agent,
+    def __init__(self, bucket, key, hour, resource_key, remote_ip, user_agent,
                  download_count):
-        self.user_id = user_id
+        self.bucket = bucket
+        self.key = key
         self.hour = hour
         self.resource_key = resource_key
         self.remote_ip = remote_ip
