@@ -9,40 +9,46 @@ class LogDay(db.Model):
     bucket = db.Column(db.String(63), primary_key=True)
     key = db.Column(db.String(1024), primary_key=True)
     date = db.Column(db.String(8), primary_key=True)
-    resource_key = db.Column(db.String(1024), primary_key=True)
     remote_ip = db.Column(db.String(15), primary_key=True)
     user_agent = db.Column(db.String(65536), primary_key=True)
     download_count = db.Column(db.Integer)
 
-    def __init__(self, bucket, key, date, resource_key, remote_ip, user_agent,
+    def __init__(self, bucket, key, date, remote_ip, user_agent,
                  download_count):
         self.bucket = bucket
         self.key = key
         self.date = date
-        self.resource_key = resource_key
         self.remote_ip = remote_ip
         self.user_agent = user_agent
         self.download_count = download_count
+
+    def __iter__(self):
+        for key in ['bucket', 'key', 'date', 'remote_ip', 'user_agent',
+                    'download_count']:
+            yield(key, getattr(self, key))
 
 
 class LogHour(db.Model):
     bucket = db.Column(db.String(63), primary_key=True)
     key = db.Column(db.String(1024), primary_key=True)
     hour = db.Column(db.String(10), primary_key=True)
-    resource_key = db.Column(db.String(1024), primary_key=True)
     remote_ip = db.Column(db.String(15), primary_key=True)
     user_agent = db.Column(db.String(65536), primary_key=True)
     download_count = db.Column(db.Integer)
 
-    def __init__(self, bucket, key, hour, resource_key, remote_ip, user_agent,
+    def __init__(self, bucket, key, hour, remote_ip, user_agent,
                  download_count):
         self.bucket = bucket
         self.key = key
         self.hour = hour
-        self.resource_key = resource_key
         self.remote_ip = remote_ip
         self.user_agent = user_agent
         self.download_count = download_count
+
+    def __iter__(self):
+        for key in ['bucket', 'key', 'hour', 'remote_ip', 'user_agent',
+                    'download_count']:
+            yield(key, getattr(self, key))
 
 
 class LogEntryRaw(db.Model):
@@ -65,6 +71,11 @@ class LogEntryRaw(db.Model):
     referrer = db.Column(db.String(2083))
     user_agent = db.Column(db.String(65536))
     version_id = db.Column(db.String(100))
+
+    __table_args__ = (
+        db.Index('idx_log_hour', 'bucket', 'key', 'remote_ip',
+                 'user_agent', 'time'),
+    )
 
     def __init__(self,
                  bucket_owner,
