@@ -115,6 +115,43 @@ class LogEntryRaw(db.Model):
         self.user_agent = user_agent
         self.version_id = version_id
 
+    def __iter__(self):
+        for key in ['bucket', 'key', 'remote_ip', 'user_agent', 'time']:
+            yield(key, getattr(self, key))
+
+
+class AggregationLogRawToHour(db.Model):
+    uuid = db.Column(db.String(32), primary_key=True)
+    bound_type = db.Column(db.String(20), primary_key=True)
+    bucket = db.Column(db.String(63))
+    key = db.Column(db.String(1024))
+    remote_ip = db.Column(db.String(15))
+    user_agent = db.Column(db.String(65536))
+    time = db.Column(db.DateTime(timezone=True))
+    processed_datetime = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda x: datetime.datetime.now(datetime.timezone.utc),
+        index=True)
+
+    BOUND_TYPE_FROM = 'FROM'
+    BOUND_TYPE_TO = 'TO'
+
+    def __init__(self, uuid, bound_type, bucket, key, remote_ip, user_agent,
+                 time):
+        self.uuid = uuid
+        self.bound_type = bound_type
+        self.bucket = bucket
+        self.key = key
+        self.remote_ip = remote_ip
+        self.user_agent = user_agent
+        self.time = time
+
+    def __iter__(self):
+        for key in ['uuid', 'bucket', 'key', 'remote_ip', 'user_agent']:
+            yield(key, getattr(self, key))
+        yield('time', str(self.time))
+        yield('processed_datetime', str(self.processed_datetime))
+
 
 def _time(s):
     return datetime.datetime.strptime(s, '[%d/%b/%Y:%H:%M:%S %z]')
