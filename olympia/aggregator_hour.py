@@ -13,7 +13,8 @@ def execute():
             query,
             models.LogHour,
             lambda x: (x.bucket, x.key, x.time.strftime('%Y%m%d%H'),
-                       x.remote_ip, x.user_agent))
+                       x.remote_ip, x.user_agent),
+            lambda x: 1)
     result = models.AggregationLogRawToHour(
         time_lower, time_upper, count_source, count_target)
     models.db.session.add(result)

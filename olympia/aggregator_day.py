@@ -11,7 +11,8 @@ def execute():
         aggregator_common.convert_model(
             query,
             models.LogDay,
-            lambda x: (x.bucket, x.key, x.hour[:8], x.remote_ip, x.user_agent))
+            lambda x: (x.bucket, x.key, x.hour[:8], x.remote_ip, x.user_agent),
+            lambda x: x.download_count)
     result = models.AggregationLogHourToDay(
         hour_lower, hour_upper, count_source, count_target)
     models.db.session.add(result)

@@ -1,5 +1,24 @@
-from olympia import app, log_loader, aggregator_hour, aggregator_day
-from flask import jsonify
+from olympia import app, log_loader, aggregator_hour, aggregator_day, \
+    stat_operation
+from flask import request, jsonify
+
+
+@app.route('/stat/key_by_day', methods=['GET'])
+def stat_key_by_day():
+    bucket = request.args.get('bucket')
+    assert bucket, 'bucket required'
+    result = stat_operation.key_by_date(bucket)
+    return jsonify(
+        status='success', bucket=bucket, result=result)
+
+
+@app.route('/stat/key_cumulative', methods=['GET'])
+def stat_key_cumulative():
+    bucket = request.args.get('bucket')
+    assert bucket, 'bucket required'
+    result = stat_operation.key_cumulative(bucket)
+    return jsonify(
+        status='success', bucket=bucket, result=result)
 
 
 @app.route('/day', methods=['POST'])
