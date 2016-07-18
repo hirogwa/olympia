@@ -153,36 +153,25 @@ class AggregationLogHourToDay(db.Model):
 
 
 class AggregationLogRawToHour(db.Model):
-    uuid = db.Column(db.String(32), primary_key=True)
-    bound_type = db.Column(db.String(20), primary_key=True)
-    bucket = db.Column(db.String(63))
-    key = db.Column(db.String(1024))
-    remote_ip = db.Column(db.String(15))
-    user_agent = db.Column(db.String(65536))
-    time = db.Column(db.DateTime(timezone=True))
+    id = db.Column(db.Integer, primary_key=True)
+    time_lower = db.Column(db.DateTime(timezone=True))
+    time_upper = db.Column(db.DateTime(timezone=True))
+    count_source = db.Column(db.Integer)
+    count_target = db.Column(db.Integer)
     processed_datetime = db.Column(
         db.DateTime(timezone=True),
-        default=lambda x: datetime.datetime.now(datetime.timezone.utc),
-        index=True)
+        default=lambda x: datetime.datetime.now(datetime.timezone.utc))
 
-    BOUND_TYPE_FROM = 'FROM'
-    BOUND_TYPE_TO = 'TO'
-
-    def __init__(self, uuid, bound_type, bucket, key, remote_ip, user_agent,
-                 time):
-        self.uuid = uuid
-        self.bound_type = bound_type
-        self.bucket = bucket
-        self.key = key
-        self.remote_ip = remote_ip
-        self.user_agent = user_agent
-        self.time = time
+    def __init__(self, time_lower, time_upper, count_source, count_target):
+        self.time_lower = time_lower
+        self.time_upper = time_upper
+        self.count_source = count_source
+        self.count_target = count_target
 
     def __iter__(self):
-        for key in ['uuid', 'bucket', 'key', 'remote_ip', 'user_agent']:
-            yield(key, getattr(self, key))
-        yield('time', str(self.time))
-        yield('processed_datetime', str(self.processed_datetime))
+        for key in ['time_lower', 'time_upper', 'count_source',
+                    'count_target', 'processed_datetime']:
+            yield key, getattr(self, key)
 
 
 def _time(s):

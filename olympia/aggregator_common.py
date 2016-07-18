@@ -1,7 +1,7 @@
 from olympia import models
 
 
-def convert_model(source_query, model_const, chunk_def):
+def convert_model(source_query, model_const, chunk_def, commit=False):
     chunk_unit, chunk_unit_current = None, None
     chunk_count, dl_count, total = 0, 0, 0
 
@@ -26,5 +26,6 @@ def convert_model(source_query, model_const, chunk_def):
         models.db.session.add(model_const(*args))
         chunk_count += 1
 
-    models.db.session.commit()
+    if commit:
+        models.db.session.commit()
     return first, key_source, total, chunk_count

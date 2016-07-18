@@ -1,57 +1,38 @@
 import datetime
-import uuid
 from olympia import aggregator_common, models, app
 from olympia.models import AggregationLogRawToHour
 
 
 def execute():
-    record = AggregationLogRawToHour.query. \
-        filter_by(
-            bound_type=AggregationLogRawToHour.BOUND_TYPE_TO). \
-        order_by(
-            models.AggregationLogRawToHour.processed_datetime.desc()). \
-        first()
+    time_lower = _get_time_lower_limit()
     time_upper = _get_time_upper_limit()
-    query = _query_filtered_raw_entry(time_upper, record)
 
-    first_processed_raw, last_processed_raw, count_source, count_result = \
+    query = _query_filtered_raw_entry(time_lower, time_upper)
+
+    _, _, count_source, count_target = \
         aggregator_common.convert_model(
             query,
             models.LogHour,
             lambda x: (x.bucket, x.key, x.time.strftime('%Y%m%d%H'),
                        x.remote_ip, x.user_agent))
-
-    if first_processed_raw:
-        _record_aggregation_result(first_processed_raw, last_processed_raw)
-        app.logger.info(
-            '{} raw entries aggregated to {} hour entries. Time upper bound:{}'.
-            format(count_source, count_result, time_upper))
-    else:
-        app.logger.info('No raw entry aggregated to hour. Time upper bound:{}'.
-                        format(time_upper))
-
-    return last_processed_raw
-
-
-def _record_aggregation_result(first, last):
-    id_string = uuid.uuid4().hex
-
-    bound_from = AggregationLogRawToHour(
-        id_string,
-        AggregationLogRawToHour.BOUND_TYPE_FROM,
-        first.bucket, first.key, first.remote_ip, first.user_agent, first.time)
-    models.db.session.add(bound_from)
-
-    bound_to = AggregationLogRawToHour(
-        id_string,
-        AggregationLogRawToHour.BOUND_TYPE_TO,
-        last.bucket, last.key, last.remote_ip, last.user_agent, last.time)
-    models.db.session.add(bound_to)
-
+    result = AggregationLogRawToHour(
+        time_lower, time_upper, count_source, count_target)
+    models.db.session.add(result)
     models.db.session.commit()
+
+    app.logger.info(
+        '{} raw entries aggregated to {} hour entries. Time range:[{}, {})'.
+        format(result.count_source,
+               result.count_target,
+               result.time_lower,
+               result.time_upper))
+
+    return result
 
 
 def _get_time_upper_limit():
+    ''' To be used with query, exclusive
+    '''
     latest_raw = models.LogEntryRaw.query. \
         order_by(
             models.LogEntryRaw.time.desc()). \
@@ -65,20 +46,26 @@ def _get_time_upper_limit():
         return None
 
 
-def _query_filtered_raw_entry(time_upper, record_lower):
+def _get_time_lower_limit():
+    ''' To be used with query, inclusive
+    '''
+    last_record = models.AggregationLogRawToHour.query. \
+        order_by(models.AggregationLogRawToHour.id.desc()). \
+        first()
+
+    return last_record.time_upper if last_record else None
+
+
+def _query_filtered_raw_entry(time_lower, time_upper):
     q = models.LogEntryRaw.query
 
     if time_upper:
         q = q.filter(
             models.LogEntryRaw.time < time_upper)
 
-    if record_lower:
+    if time_lower:
         q = q.filter(
-            models.LogEntryRaw.bucket > record_lower.bucket,
-            models.LogEntryRaw.key > record_lower.key,
-            models.LogEntryRaw.remote_ip > record_lower.remote_ip,
-            models.LogEntryRaw.user_agent > record_lower.user_agent,
-            models.LogEntryRaw.time > record_lower.time)
+            models.LogEntryRaw.time >= time_lower)
 
     return q. \
         filter(
