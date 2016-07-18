@@ -1,5 +1,5 @@
-from olympia import app, aggregator_hour, aggregator_day, operations
-from flask import request, jsonify
+from olympia import app, log_loader, aggregator_hour, aggregator_day
+from flask import jsonify
 
 
 @app.route('/day', methods=['POST'])
@@ -18,8 +18,8 @@ def generate_hour():
 
 @app.route('/raw', methods=['POST'])
 def generate_raw():
-    args = request.get_json()
-    return operations.s3_to_raw()
+    result = log_loader.execute()
+    return jsonify(result='success', info=dict(result))
 
 
 @app.route('/ping', methods=['GET'])
