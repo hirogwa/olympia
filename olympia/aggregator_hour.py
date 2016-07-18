@@ -1,6 +1,5 @@
 import datetime
 from olympia import aggregator_common, models, app
-from olympia.models import AggregationLogRawToHour
 
 
 def execute():
@@ -9,13 +8,13 @@ def execute():
 
     query = _query_filtered_raw_entry(time_lower, time_upper)
 
-    _, _, count_source, count_target = \
+    count_source, count_target = \
         aggregator_common.convert_model(
             query,
             models.LogHour,
             lambda x: (x.bucket, x.key, x.time.strftime('%Y%m%d%H'),
                        x.remote_ip, x.user_agent))
-    result = AggregationLogRawToHour(
+    result = models.AggregationLogRawToHour(
         time_lower, time_upper, count_source, count_target)
     models.db.session.add(result)
     models.db.session.commit()

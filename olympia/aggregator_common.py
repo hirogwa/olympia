@@ -5,10 +5,8 @@ def convert_model(source_query, model_const, chunk_def, commit=False):
     chunk_unit, chunk_unit_current = None, None
     chunk_count, dl_count, total = 0, 0, 0
 
-    first, key_source = None, None
+    key_source = None
     for key_source in source_query:
-        if total == 0:
-            first = key_source
         total += 1
         dl_count += 1
         chunk_unit = chunk_def(key_source)
@@ -28,4 +26,4 @@ def convert_model(source_query, model_const, chunk_def, commit=False):
 
     if commit:
         models.db.session.commit()
-    return first, key_source, total, chunk_count
+    return total, chunk_count

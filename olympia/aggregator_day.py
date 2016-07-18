@@ -1,55 +1,35 @@
-import uuid
 from olympia import app, models, aggregator_common
-from olympia.models import AggregationLogHourToDay
 
 
 def execute():
-    record = AggregationLogHourToDay.query. \
-        filter_by(
-            bound_type=AggregationLogHourToDay.BOUND_TYPE_TO). \
-        order_by(
-            models.AggregationLogHourToDay.processed_datetime.desc()). \
-        first()
-    hour_upper = _get_time_upper_limit()
-    query = _query_hour_entry(hour_upper, record)
+    hour_lower = _get_hour_lower_limit()
+    hour_upper = _get_hour_upper_limit()
 
-    first_processed_hour, last_processed_hour, count_source, count_result = \
+    query = _query_hour_entry(hour_lower, hour_upper)
+
+    count_source, count_target = \
         aggregator_common.convert_model(
             query,
             models.LogDay,
             lambda x: (x.bucket, x.key, x.hour[:8], x.remote_ip, x.user_agent))
-
-    if first_processed_hour:
-        _record_aggregation_result(first_processed_hour, last_processed_hour)
-        app.logger.info(
-            '{} hour entries aggregated to {} day entries. Hour upper bound:{}'.
-            format(count_source, count_result, hour_upper))
-    else:
-        app.logger.info('No hour entry aggregated to day. Hour upper bound:{}'.
-                        format(hour_upper))
-
-    return last_processed_hour
-
-
-def _record_aggregation_result(first, last):
-    id_string = uuid.uuid4().hex
-
-    bound_from = AggregationLogHourToDay(
-        id_string,
-        AggregationLogHourToDay.BOUND_TYPE_FROM,
-        first.bucket, first.key, first.remote_ip, first.user_agent, first.hour)
-    models.db.session.add(bound_from)
-
-    bound_to = AggregationLogHourToDay(
-        id_string,
-        AggregationLogHourToDay.BOUND_TYPE_TO,
-        last.bucket, last.key, last.remote_ip, last.user_agent, last.hour)
-    models.db.session.add(bound_to)
-
+    result = models.AggregationLogHourToDay(
+        hour_lower, hour_upper, count_source, count_target)
+    models.db.session.add(result)
     models.db.session.commit()
 
+    app.logger.info(
+        '{} hour entries aggregated to {} day entries. Hour range:[{}, {})'.
+        format(result.count_source,
+               result.count_target,
+               result.hour_lower,
+               result.hour_upper))
 
-def _get_time_upper_limit():
+    return result
+
+
+def _get_hour_upper_limit():
+    ''' To be used with query, exclusive
+    '''
     latest_hour = models.LogHour.query. \
         order_by(
             models.LogHour.hour.desc()). \
@@ -58,20 +38,26 @@ def _get_time_upper_limit():
     return latest_hour.hour[:8] + '00' if latest_hour else None
 
 
-def _query_hour_entry(hour_upper, record_lower):
+def _get_hour_lower_limit():
+    ''' To be used with query, inclusive
+    '''
+    last_record = models.AggregationLogHourToDay.query. \
+        order_by(models.AggregationLogHourToDay.id.desc()). \
+        first()
+
+    return last_record.hour_upper if last_record else None
+
+
+def _query_hour_entry(hour_lower, hour_upper):
     q = models.LogHour.query
 
     if hour_upper:
         q = q.filter(
             models.LogHour.hour < hour_upper)
 
-    if record_lower:
+    if hour_lower:
         q = q.filter(
-            models.LogHour.bucket > record_lower.bucket,
-            models.LogHour.key > record_lower.key,
-            models.LogHour.remote_ip > record_lower.remote_ip,
-            models.LogHour.user_agent > record_lower.user_agent,
-            models.LogHour.hour > record_lower.hour)
+            models.LogHour.hour >= hour_lower)
 
     return q. \
         order_by(
