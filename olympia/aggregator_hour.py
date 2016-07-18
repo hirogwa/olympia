@@ -8,7 +8,8 @@ def execute():
     record = AggregationLogRawToHour.query. \
         filter_by(
             bound_type=AggregationLogRawToHour.BOUND_TYPE_TO). \
-        order_by(models.AggregationLogRawToHour.processed_datetime.desc()). \
+        order_by(
+            models.AggregationLogRawToHour.processed_datetime.desc()). \
         first()
     time_upper = _get_time_upper_limit()
     query = _query_filtered_raw_entry(time_upper, record)
@@ -22,7 +23,6 @@ def execute():
 
     if first_processed_raw:
         _record_aggregation_result(first_processed_raw, last_processed_raw)
-        models.db.session.commit()
         app.logger.info(
             '{} raw entries aggregated to {} hour entries. Time upper bound:{}'.
             format(count_source, count_result, time_upper))
@@ -65,7 +65,7 @@ def _get_time_upper_limit():
         return None
 
 
-def _query_filtered_raw_entry(time_upper, record_lower=None):
+def _query_filtered_raw_entry(time_upper, record_lower):
     q = models.LogEntryRaw.query
 
     if time_upper:
