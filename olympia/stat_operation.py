@@ -4,13 +4,14 @@ from olympia import models
 def key_by_date(bucket, key_prefix=None, date_from=None, date_to=None):
     '''
     Returns the number of distinct (remote_ip, user_agent) pairs
-    that downloaded each (key, date) in the given date range.
+    and cumulative downloads for each (key, date) pair in the given date range.
     '''
     q = models.db.session.query(
         models.LogDay.bucket,
         models.LogDay.key,
         models.LogDay.date,
-        models.db.func.count(1))
+        models.db.func.count(1),
+        models.db.func.sum(models.LogDay.download_count))
 
     q = _filter_base(q, bucket, key_prefix, date_from, date_to)
 
@@ -27,11 +28,13 @@ def key_by_date(bucket, key_prefix=None, date_from=None, date_to=None):
 
     result = {}
     for x in q:
-        bucket, key, date, count = x
-        if key in result:
-            result.get(key)[date] = count
-        else:
-            result[key] = {date: count}
+        bucket, key, date, distinct_user, download_count = x
+        if key not in result:
+            result[key] = {}
+        result.get(key)[date] = {
+            'users': distinct_user,
+            'downloads': download_count
+        }
 
     return result
 
@@ -39,12 +42,13 @@ def key_by_date(bucket, key_prefix=None, date_from=None, date_to=None):
 def key_cumulative(bucket, key_prefix=None, date_from=None, date_to=None):
     '''
     Returns the number of distinct (remote_ip, user_agent) pairs
-    that downloaded each key in the given date range.
+    and cumulative downloads for each key in the given date range.
     '''
     q = models.db.session.query(
         models.LogDay.bucket,
         models.LogDay.key,
-        models.db.func.count(1))
+        models.db.func.count(1),
+        models.db.func.sum(models.LogDay.download_count))
 
     q = _filter_base(q, bucket, key_prefix, date_from, date_to)
 
@@ -57,7 +61,7 @@ def key_cumulative(bucket, key_prefix=None, date_from=None, date_to=None):
             models.LogDay.key). \
         all()
 
-    return {k: v for _, k, v in q}
+    return {k: {'users': u, 'downloads': d} for _, k, u, d in q}
 
 
 def _filter_base(q, bucket, key_prefix, date_from, date_to):
