@@ -6,8 +6,9 @@ from flask import request, jsonify
 @app.route('/stat/key_by_day', methods=['GET'])
 def stat_key_by_day():
     bucket = request.args.get('bucket')
+    key_prefix = request.args.get('key_prefix')
     assert bucket, 'bucket required'
-    result = stat_operation.key_by_date(bucket)
+    result = stat_operation.key_by_date(bucket, key_prefix)
     return jsonify(
         status='success', bucket=bucket, result=result)
 
@@ -15,8 +16,9 @@ def stat_key_by_day():
 @app.route('/stat/key_cumulative', methods=['GET'])
 def stat_key_cumulative():
     bucket = request.args.get('bucket')
+    key_prefix = request.args.get('key_prefix')
     assert bucket, 'bucket required'
-    result = stat_operation.key_cumulative(bucket)
+    result = stat_operation.key_cumulative(bucket, key_prefix)
     return jsonify(
         status='success', bucket=bucket, result=result)
 
