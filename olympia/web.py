@@ -5,22 +5,37 @@ from flask import request, jsonify
 
 @app.route('/stat/key_by_day', methods=['GET'])
 def stat_key_by_day():
-    bucket = request.args.get('bucket')
-    key_prefix = request.args.get('key_prefix')
-    assert bucket, 'bucket required'
+    bucket, key_prefix = _stat_essentials(request.args)
     result = stat_operation.key_by_date(bucket, key_prefix)
     return jsonify(
-        status='success', bucket=bucket, result=result)
+        status='success', bucket=bucket, keys=result)
+
+
+@app.route('/stat/key_by_week', methods=['GET'])
+def stat_key_by_week():
+    args = request.args
+    bucket, key_prefix = _stat_essentials(args)
+    date_to = args.get('date_to')
+    keys, date_from, date_to = \
+        stat_operation.key_by_week(bucket, key_prefix, date_to)
+    return jsonify(status='success', bucket=bucket, keys=keys,
+                   date_from=date_from, date_to=date_to)
 
 
 @app.route('/stat/key_cumulative', methods=['GET'])
 def stat_key_cumulative():
-    bucket = request.args.get('bucket')
+    bucket, key_prefix = _stat_essentials(request.args)
+    keys, date_from, date_to = \
+        stat_operation.key_cumulative(bucket, key_prefix)
+    return jsonify(status='success', bucket=bucket, keys=keys,
+                   date_from=date_from, date_to=date_to)
+
+
+def _stat_essentials(args):
+    bucket = args.get('bucket')
     key_prefix = request.args.get('key_prefix')
     assert bucket, 'bucket required'
-    result = stat_operation.key_cumulative(bucket, key_prefix)
-    return jsonify(
-        status='success', bucket=bucket, result=result)
+    return bucket, key_prefix
 
 
 @app.route('/day', methods=['POST'])

@@ -1,4 +1,7 @@
+import datetime
 from olympia import models
+
+DATE_FORMAT = '%Y%m%d'
 
 
 def key_by_date(bucket, key_prefix=None, date_from=None, date_to=None):
@@ -39,6 +42,23 @@ def key_by_date(bucket, key_prefix=None, date_from=None, date_to=None):
     return result
 
 
+def key_by_week(bucket, key_prefix=None, date_to=None):
+    '''
+    Returns the number of distinct (remote_ip, user_agent) pairs
+    and cumulative downloads for the week until the given date for each key
+    '''
+    if date_to:
+        date_to = datetime.datetime.strptime(date_to, DATE_FORMAT)
+    else:
+        date_to = datetime.date.today()
+    date_from = date_to - datetime.timedelta(days=6)
+
+    return key_cumulative(bucket,
+                          key_prefix,
+                          date_from.strftime(DATE_FORMAT),
+                          date_to.strftime(DATE_FORMAT))
+
+
 def key_cumulative(bucket, key_prefix=None, date_from=None, date_to=None):
     '''
     Returns the number of distinct (remote_ip, user_agent) pairs
@@ -61,7 +81,8 @@ def key_cumulative(bucket, key_prefix=None, date_from=None, date_to=None):
             models.LogDay.key). \
         all()
 
-    return {k: {'users': u, 'downloads': d} for _, k, u, d in q}
+    return {k: {'users': u, 'downloads': d} for _, k, u, d in q}, \
+        date_from, date_to
 
 
 def _filter_base(q, bucket, key_prefix, date_from, date_to):
