@@ -10,17 +10,19 @@ def stat_key_by_day():
     assert bucket, 'bucket required'
     result = stat_operation.key_by_date(bucket, key_prefix)
     return jsonify(
-        status='success', bucket=bucket, result=result)
+        status='success', bucket=bucket, keys=result)
 
 
 @app.route('/stat/key_cumulative', methods=['GET'])
 def stat_key_cumulative():
     bucket = request.args.get('bucket')
     key_prefix = request.args.get('key_prefix')
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
     assert bucket, 'bucket required'
-    result = stat_operation.key_cumulative(bucket, key_prefix)
+    result = stat_operation.key_cumulative(bucket, key_prefix, date_from, date_to)
     return jsonify(
-        status='success', bucket=bucket, result=result)
+        status='success', bucket=bucket, keys=result)
 
 
 @app.route('/day', methods=['POST'])
