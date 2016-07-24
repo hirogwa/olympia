@@ -51,6 +51,34 @@ class LogHour(db.Model):
             yield(key, getattr(self, key))
 
 
+class LogDatetime(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    bucket = db.Column(db.String(63))
+    key = db.Column(db.String(1024))
+    hour = db.Column(db.String(10), index=True)
+    datetime = db.Column(db.DateTime(timezone=True))
+    remote_ip = db.Column(db.String(15))
+    user_agent = db.Column(db.String(65536))
+
+    __table_args__ = (
+        db.Index('idx_log_datetime', 'bucket', 'key', 'hour', 'remote_ip',
+                 'user_agent'),
+    )
+
+    def __init__(self, bucket, key, hour, datetime, remote_ip, user_agent):
+        self.bucket = bucket
+        self.key = key
+        self.hour = hour
+        self.datetime = datetime
+        self.remote_ip = remote_ip
+        self.user_agent = user_agent
+
+    def __iter__(self):
+        for key in ['bucket', 'key', 'hour', 'datetime', 'remote_ip',
+                    'user_agent']:
+            yield key, getattr(self, key)
+
+
 class LogEntryRaw(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     bucket_owner = db.Column(db.String(64))
@@ -143,6 +171,28 @@ class AggregationLogHourToDay(db.Model):
 
 
 class AggregationLogRawToHour(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    time_lower = db.Column(db.DateTime(timezone=True))
+    time_upper = db.Column(db.DateTime(timezone=True))
+    count_source = db.Column(db.Integer)
+    count_target = db.Column(db.Integer)
+    processed_datetime = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda x: datetime.datetime.now(datetime.timezone.utc))
+
+    def __init__(self, time_lower, time_upper, count_source, count_target):
+        self.time_lower = time_lower
+        self.time_upper = time_upper
+        self.count_source = count_source
+        self.count_target = count_target
+
+    def __iter__(self):
+        for key in ['time_lower', 'time_upper', 'count_source',
+                    'count_target', 'processed_datetime']:
+            yield key, getattr(self, key)
+
+
+class AggregationLogRawToDatetime(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     time_lower = db.Column(db.DateTime(timezone=True))
     time_upper = db.Column(db.DateTime(timezone=True))

@@ -1,5 +1,5 @@
-from olympia import app, log_loader, aggregator_hour, aggregator_day, \
-    stat_operation
+from olympia import app, log_loader, aggregator_datetime, aggregator_hour, \
+    aggregator_day, stat_operation
 from flask import request, jsonify
 
 
@@ -37,6 +37,12 @@ def generate_hour():
     result = aggregator_hour.execute()
     return jsonify(result='success',
                    last_processed=(dict(result) if result else {}))
+
+
+@app.route('/datetime', methods=['POST'])
+def generate_datetime():
+    result = aggregator_datetime.aggregate()
+    return jsonify(result='success', info=dict(result))
 
 
 @app.route('/raw', methods=['POST'])
