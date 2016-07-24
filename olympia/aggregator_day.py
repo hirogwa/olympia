@@ -6,8 +6,9 @@ def aggregate():
     date_upper = _get_date_upper_limit()
 
     count_target = 0
-    for log_date in get_log_day_entries(date_lower, date_upper):
-        models.db.session.add(log_date)
+    q = get_day_aggregation_query().all()
+    for log_day in [models.LogDay(b, k, d, r, u, s) for b, k, d, r, u, s in q]:
+        models.db.session.add(log_day)
         count_target += 1
 
     count_source = _get_source_count(date_lower, date_upper)
@@ -26,24 +27,36 @@ def aggregate():
     return result
 
 
-def get_log_day_entries(date_lower, date_upper):
+def get_day_aggregation_query(upper_inclusive=False, date_lower=None,
+                              date_upper=None, bucket=None, key_prefix=None):
+    date_lower = date_lower or _get_date_lower_limit()
+    date_upper = date_upper or _get_date_upper_limit()
+
     q = models.db.session.query(
         models.LogHour.bucket,
         models.LogHour.key,
         models.LogHour.date,
         models.LogHour.remote_ip,
         models.LogHour.user_agent,
-        models.db.func.sum(models.LogHour.download_count))
+        models.db.func.sum(
+            models.LogHour.download_count).label('download_count'))
+
+    if bucket:
+        q = q.filter(models.LogHour.bucket == bucket)
+
+    if key_prefix:
+        q = q.filter(models.LogHour.key.like(key_prefix + '%'))
 
     if date_lower:
-        q = q.filter(
-            models.LogHour.date >= date_lower)
+        q = q.filter(models.LogHour.date >= date_lower)
 
     if date_upper:
-        q = q.filter(
-            models.LogHour.date < date_upper)
+        if upper_inclusive:
+            q = q.filter(models.LogHour.date <= date_upper)
+        else:
+            q = q.filter(models.LogHour.date < date_upper)
 
-    q = q. \
+    return q. \
         group_by(
             models.LogHour.bucket,
             models.LogHour.key,
@@ -55,10 +68,7 @@ def get_log_day_entries(date_lower, date_upper):
             models.LogHour.key.asc(),
             models.LogHour.date.asc(),
             models.LogHour.remote_ip.asc(),
-            models.LogHour.user_agent.asc()). \
-        all()
-
-    return [models.LogDay(b, k, d, r, u, s) for b, k, d, r, u, s in q]
+            models.LogHour.user_agent.asc())
 
 
 def _get_source_count(date_lower, date_upper):
