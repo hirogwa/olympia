@@ -34,9 +34,8 @@ def generator_day():
 
 @app.route('/hour', methods=['POST'])
 def generate_hour():
-    result = aggregator_hour.execute()
-    return jsonify(result='success',
-                   last_processed=(dict(result) if result else {}))
+    result = aggregator_hour.aggregate()
+    return jsonify(result='success', info=(dict(result)))
 
 
 @app.route('/datetime', methods=['POST'])

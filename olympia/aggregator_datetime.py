@@ -31,6 +31,7 @@ def get_log_datetime_entries(time_lower):
         filter(
             models.LogEntryRaw.user_agent.notlike('"S3Console%'),
             models.LogEntryRaw.user_agent.notlike('"aws-sdk-java%'),
+            models.LogEntryRaw.user_agent.notlike('"aws-internal%'),
             models.LogEntryRaw.user_agent.notlike('"facebookexternalhit%'),
             models.LogEntryRaw.user_agent.notlike('"Boto%')). \
         filter(

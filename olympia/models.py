@@ -35,19 +35,25 @@ class LogHour(db.Model):
     remote_ip = db.Column(db.String(15), primary_key=True)
     user_agent = db.Column(db.String(65536), primary_key=True)
     download_count = db.Column(db.Integer)
+    date = db.Column(db.String(8))
+
+    __table_args__ = (
+        db.Index('idx_log_hour_01', 'bucket', 'key', 'date'),
+    )
 
     def __init__(self, bucket, key, hour, remote_ip, user_agent,
-                 download_count):
+                 download_count, date):
         self.bucket = bucket
         self.key = key
         self.hour = hour
         self.remote_ip = remote_ip
         self.user_agent = user_agent
         self.download_count = download_count
+        self.date = date
 
     def __iter__(self):
         for key in ['bucket', 'key', 'hour', 'remote_ip', 'user_agent',
-                    'download_count']:
+                    'download_count', 'date']:
             yield(key, getattr(self, key))
 
 
@@ -170,24 +176,24 @@ class AggregationLogHourToDay(db.Model):
             yield key, getattr(self, key)
 
 
-class AggregationLogRawToHour(db.Model):
+class AggregationLogDatetimeToHour(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    time_lower = db.Column(db.DateTime(timezone=True))
-    time_upper = db.Column(db.DateTime(timezone=True))
+    hour_lower = db.Column(db.String(10))
+    hour_upper = db.Column(db.String(10))
     count_source = db.Column(db.Integer)
     count_target = db.Column(db.Integer)
     processed_datetime = db.Column(
         db.DateTime(timezone=True),
         default=lambda x: datetime.datetime.now(datetime.timezone.utc))
 
-    def __init__(self, time_lower, time_upper, count_source, count_target):
-        self.time_lower = time_lower
-        self.time_upper = time_upper
+    def __init__(self, hour_lower, hour_upper, count_source, count_target):
+        self.hour_lower = hour_lower
+        self.hour_upper = hour_upper
         self.count_source = count_source
         self.count_target = count_target
 
     def __iter__(self):
-        for key in ['time_lower', 'time_upper', 'count_source',
+        for key in ['hour_lower', 'hour_upper', 'count_source',
                     'count_target', 'processed_datetime']:
             yield key, getattr(self, key)
 
