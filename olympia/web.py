@@ -27,15 +27,14 @@ def stat_key_cumulative():
 
 @app.route('/day', methods=['POST'])
 def generator_day():
-    result = aggregator_day.execute()
-    return jsonify(result='success',
-                   last_processed=dict(result) if result else {})
+    result = aggregator_day.aggregate()
+    return jsonify(result='success', info=dict(result))
 
 
 @app.route('/hour', methods=['POST'])
 def generate_hour():
     result = aggregator_hour.aggregate()
-    return jsonify(result='success', info=(dict(result)))
+    return jsonify(result='success', info=dict(result))
 
 
 @app.route('/datetime', methods=['POST'])

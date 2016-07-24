@@ -1,20 +1,18 @@
-from olympia import app, models, aggregator_common
+from olympia import app, models
 
 
-def execute():
-    hour_lower = _get_hour_lower_limit()
-    hour_upper = _get_hour_upper_limit()
+def aggregate():
+    date_lower = _get_date_lower_limit()
+    date_upper = _get_date_upper_limit()
 
-    query = _query_hour_entry(hour_lower, hour_upper)
+    count_target = 0
+    for log_date in get_log_day_entries(date_lower, date_upper):
+        models.db.session.add(log_date)
+        count_target += 1
 
-    count_source, count_target = \
-        aggregator_common.convert_model(
-            query,
-            models.LogDay,
-            lambda x: (x.bucket, x.key, x.hour[:8], x.remote_ip, x.user_agent),
-            lambda x: x.download_count)
+    count_source = _get_source_count(date_lower, date_upper)
     result = models.AggregationLogHourToDay(
-        hour_lower, hour_upper, count_source, count_target)
+        date_lower, date_upper, count_source, count_target)
     models.db.session.add(result)
     models.db.session.commit()
 
@@ -22,49 +20,76 @@ def execute():
         '{} hour entries aggregated to {} day entries. Hour range:[{}, {})'.
         format(result.count_source,
                result.count_target,
-               result.hour_lower,
-               result.hour_upper))
+               result.date_lower,
+               result.date_upper))
 
     return result
 
 
-def _get_hour_upper_limit():
-    ''' To be used with query, exclusive
-    '''
-    latest_hour = models.LogHour.query. \
+def get_log_day_entries(date_lower, date_upper):
+    q = models.db.session.query(
+        models.LogHour.bucket,
+        models.LogHour.key,
+        models.LogHour.date,
+        models.LogHour.remote_ip,
+        models.LogHour.user_agent,
+        models.db.func.sum(models.LogHour.download_count))
+
+    if date_lower:
+        q = q.filter(
+            models.LogHour.date >= date_lower)
+
+    if date_upper:
+        q = q.filter(
+            models.LogHour.date < date_upper)
+
+    q = q. \
+        group_by(
+            models.LogHour.bucket,
+            models.LogHour.key,
+            models.LogHour.date,
+            models.LogHour.remote_ip,
+            models.LogHour.user_agent). \
         order_by(
-            models.LogHour.hour.desc()). \
-        first()
+            models.LogHour.bucket.asc(),
+            models.LogHour.key.asc(),
+            models.LogHour.date.asc(),
+            models.LogHour.remote_ip.asc(),
+            models.LogHour.user_agent.asc()). \
+        all()
 
-    return latest_hour.hour[:8] + '00' if latest_hour else None
+    return [models.LogDay(b, k, d, r, u, s) for b, k, d, r, u, s in q]
 
 
-def _get_hour_lower_limit():
+def _get_source_count(date_lower, date_upper):
+    q = models.LogHour.query
+
+    if date_lower:
+        q = q.filter(
+            models.LogHour.date >= date_lower)
+    if date_upper:
+        q = q.filter(
+            models.LogHour.date < date_upper)
+
+    return q.count()
+
+
+def _get_date_lower_limit():
     ''' To be used with query, inclusive
     '''
     last_record = models.AggregationLogHourToDay.query. \
         order_by(models.AggregationLogHourToDay.id.desc()). \
         first()
 
-    return last_record.hour_upper if last_record else None
+    return last_record.date_upper if last_record else None
 
 
-def _query_hour_entry(hour_lower, hour_upper):
-    q = models.LogHour.query
-
-    if hour_upper:
-        q = q.filter(
-            models.LogHour.hour < hour_upper)
-
-    if hour_lower:
-        q = q.filter(
-            models.LogHour.hour >= hour_lower)
-
-    return q. \
+def _get_date_upper_limit():
+    ''' To be used with query, exclusive
+    '''
+    latest_hour = models.LogHour.query. \
         order_by(
-            models.LogHour.bucket.asc(),
-            models.LogHour.key.asc(),
-            models.LogHour.remote_ip.asc(),
-            models.LogHour.user_agent.asc(),
-            models.LogHour.hour.asc()). \
-        all()
+            models.LogHour.date.desc()). \
+        first()
+
+    return latest_hour.date if latest_hour else None

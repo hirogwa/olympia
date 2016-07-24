@@ -56,8 +56,7 @@ def get_log_hour_entries(hour_lower, hour_upper):
             models.LogDatetime.key.asc(),
             models.LogDatetime.hour.asc(),
             models.LogDatetime.remote_ip.asc(),
-            models.LogDatetime.user_agent.asc(),
-            models.LogDatetime.hour.asc()). \
+            models.LogDatetime.user_agent.asc()). \
         all()
 
     return [models.LogHour(b, k, h, r, u, c, h[:8]) for b, k, h, r, u, c in q]
