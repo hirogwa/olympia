@@ -37,11 +37,12 @@ def get_log_datetime_entries(bucket, time_lower, time_upper):
 
     q = q. \
         filter(
-            models.LogEntryRaw.user_agent.notlike('"S3Console%'),
             models.LogEntryRaw.user_agent.notlike('"aws-sdk-java%'),
             models.LogEntryRaw.user_agent.notlike('"aws-internal%'),
             models.LogEntryRaw.user_agent.notlike('"facebookexternalhit%'),
-            models.LogEntryRaw.user_agent.notlike('"Boto%')). \
+            models.LogEntryRaw.user_agent.notlike('"Boto%'),
+            models.LogEntryRaw.user_agent.notlike('"FeedValidator%'),
+            models.LogEntryRaw.user_agent.notlike('"S3Console%')). \
         filter(
             models.LogEntryRaw.operation.like('REST.GET%') |
             models.LogEntryRaw.operation.like('WEBSITE.GET%')). \
