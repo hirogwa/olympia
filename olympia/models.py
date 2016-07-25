@@ -88,7 +88,7 @@ class LogDatetime(db.Model):
 class LogEntryRaw(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     bucket_owner = db.Column(db.String(64))
-    bucket = db.Column(db.String(63))
+    bucket = db.Column(db.String(63), index=True)
     time = db.Column(db.DateTime(timezone=True), index=True)
     remote_ip = db.Column(db.String(15))
     requester = db.Column(db.String(64))
@@ -156,6 +156,7 @@ class LogEntryRaw(db.Model):
 
 class AggregationLogHourToDay(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    bucket = db.Column(db.String(63), index=True)
     date_lower = db.Column(db.String(8))
     date_upper = db.Column(db.String(8))
     count_source = db.Column(db.Integer)
@@ -164,20 +165,23 @@ class AggregationLogHourToDay(db.Model):
         db.DateTime(timezone=True),
         default=lambda x: datetime.datetime.now(datetime.timezone.utc))
 
-    def __init__(self, date_lower, date_upper, count_source, count_target):
+    def __init__(self, bucket,  date_lower, date_upper, count_source,
+                 count_target):
+        self.bucket = bucket
         self.date_lower = date_lower
         self.date_upper = date_upper
         self.count_source = count_source
         self.count_target = count_target
 
     def __iter__(self):
-        for key in ['date_lower', 'date_upper', 'count_source',
+        for key in ['bucket', 'date_lower', 'date_upper', 'count_source',
                     'count_target']:
             yield key, getattr(self, key)
 
 
 class AggregationLogDatetimeToHour(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    bucket = db.Column(db.String(63), index=True)
     hour_lower = db.Column(db.String(10))
     hour_upper = db.Column(db.String(10))
     count_source = db.Column(db.Integer)
@@ -186,20 +190,23 @@ class AggregationLogDatetimeToHour(db.Model):
         db.DateTime(timezone=True),
         default=lambda x: datetime.datetime.now(datetime.timezone.utc))
 
-    def __init__(self, hour_lower, hour_upper, count_source, count_target):
+    def __init__(self, bucket, hour_lower, hour_upper, count_source,
+                 count_target):
+        self.bucket = bucket
         self.hour_lower = hour_lower
         self.hour_upper = hour_upper
         self.count_source = count_source
         self.count_target = count_target
 
     def __iter__(self):
-        for key in ['hour_lower', 'hour_upper', 'count_source',
+        for key in ['bucket', 'hour_lower', 'hour_upper', 'count_source',
                     'count_target', 'processed_datetime']:
             yield key, getattr(self, key)
 
 
 class AggregationLogRawToDatetime(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    bucket = db.Column(db.String(63), index=True)
     time_lower = db.Column(db.DateTime(timezone=True))
     time_upper = db.Column(db.DateTime(timezone=True))
     count_source = db.Column(db.Integer)
@@ -208,14 +215,16 @@ class AggregationLogRawToDatetime(db.Model):
         db.DateTime(timezone=True),
         default=lambda x: datetime.datetime.now(datetime.timezone.utc))
 
-    def __init__(self, time_lower, time_upper, count_source, count_target):
+    def __init__(self, bucket, time_lower, time_upper, count_source,
+                 count_target):
+        self.bucket = bucket
         self.time_lower = time_lower
         self.time_upper = time_upper
         self.count_source = count_source
         self.count_target = count_target
 
     def __iter__(self):
-        for key in ['time_lower', 'time_upper', 'count_source',
+        for key in ['bucket', 'time_lower', 'time_upper', 'count_source',
                     'count_target', 'processed_datetime']:
             yield key, getattr(self, key)
 

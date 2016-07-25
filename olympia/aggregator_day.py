@@ -1,36 +1,38 @@
 from olympia import app, models
 
 
-def aggregate():
-    date_lower = _get_date_lower_limit()
-    date_upper = _get_date_upper_limit()
+def aggregate(bucket):
+    date_lower = _get_date_lower_limit(bucket)
+    date_upper = _get_date_upper_limit(bucket)
 
     count_target = 0
-    q = get_day_aggregation_query().all()
+    q = get_day_aggregation_query(
+        bucket, date_lower=date_lower, date_upper=date_upper).all()
     for log_day in [models.LogDay(b, k, d, r, u, s) for b, k, d, r, u, s in q]:
         models.db.session.add(log_day)
         count_target += 1
 
     count_source = _get_source_count(date_lower, date_upper)
     result = models.AggregationLogHourToDay(
-        date_lower, date_upper, count_source, count_target)
+        bucket, date_lower, date_upper, count_source, count_target)
     models.db.session.add(result)
     models.db.session.commit()
 
     app.logger.info(
-        '{} hour entries aggregated to {} day entries. Hour range:[{}, {})'.
+        '{} hour entries aggregated to {} day entries for bucket {}. Hour range:[{}, {})'.
         format(result.count_source,
                result.count_target,
+               result.bucket,
                result.date_lower,
                result.date_upper))
 
     return result
 
 
-def get_day_aggregation_query(upper_inclusive=False, date_lower=None,
-                              date_upper=None, bucket=None, key_prefix=None):
-    date_lower = date_lower or _get_date_lower_limit()
-    date_upper = date_upper or _get_date_upper_limit()
+def get_day_aggregation_query(bucket, upper_inclusive=False, date_lower=None,
+                              date_upper=None, key_prefix=None):
+    date_lower = date_lower or _get_date_lower_limit(bucket)
+    date_upper = date_upper or _get_date_upper_limit(bucket)
 
     q = models.db.session.query(
         models.LogHour.bucket,
@@ -84,20 +86,22 @@ def _get_source_count(date_lower, date_upper):
     return q.count()
 
 
-def _get_date_lower_limit():
+def _get_date_lower_limit(bucket):
     ''' To be used with query, inclusive
     '''
     last_record = models.AggregationLogHourToDay.query. \
+        filter(models.AggregationLogHourToDay.bucket == bucket). \
         order_by(models.AggregationLogHourToDay.id.desc()). \
         first()
 
     return last_record.date_upper if last_record else None
 
 
-def _get_date_upper_limit():
+def _get_date_upper_limit(bucket):
     ''' To be used with query, exclusive
     '''
     latest_hour = models.LogHour.query. \
+        filter(models.LogHour.bucket == bucket). \
         order_by(
             models.LogHour.date.desc()). \
         first()

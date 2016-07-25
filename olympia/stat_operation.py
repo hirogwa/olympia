@@ -69,8 +69,8 @@ def _log_day_list_from_hour_by_date(date_to, bucket, key_prefix):
     '''
     sub_q = aggregator_day. \
         get_day_aggregation_query(
-            upper_inclusive=True, date_lower=None, date_upper=date_to,
-            bucket=bucket, key_prefix=key_prefix). \
+            bucket, upper_inclusive=True, date_lower=None, date_upper=date_to,
+            key_prefix=key_prefix). \
         subquery()
 
     q = models.db.session. \
@@ -98,8 +98,8 @@ def _log_day_list_from_hour_cumulative(date_to, bucket, key_prefix):
     '''
     sub_q = aggregator_day. \
         get_day_aggregation_query(
-            upper_inclusive=True, date_lower=None, date_upper=date_to,
-            bucket=bucket, key_prefix=key_prefix). \
+            bucket, upper_inclusive=True, date_lower=None,
+            date_upper=date_to, key_prefix=key_prefix). \
         subquery()
 
     q = models.db.session. \

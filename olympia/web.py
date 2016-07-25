@@ -27,26 +27,32 @@ def stat_key_cumulative():
 
 @app.route('/day', methods=['POST'])
 def generator_day():
-    result = aggregator_day.aggregate()
+    result = aggregator_day.aggregate(_arg_bucket_or_assert())
     return jsonify(result='success', info=dict(result))
 
 
 @app.route('/hour', methods=['POST'])
 def generate_hour():
-    result = aggregator_hour.aggregate()
+    result = aggregator_hour.aggregate(_arg_bucket_or_assert())
     return jsonify(result='success', info=dict(result))
 
 
 @app.route('/datetime', methods=['POST'])
 def generate_datetime():
-    result = aggregator_datetime.aggregate()
+    result = aggregator_datetime.aggregate(_arg_bucket_or_assert())
     return jsonify(result='success', info=dict(result))
 
 
 @app.route('/raw', methods=['POST'])
 def generate_raw():
-    result = log_loader.execute()
+    result = log_loader.execute(_arg_bucket_or_assert())
     return jsonify(result='success', info=dict(result))
+
+
+def _arg_bucket_or_assert():
+    bucket = request.args.get('bucket')
+    assert bucket, 'bucket required'
+    return bucket
 
 
 @app.route('/ping', methods=['GET'])

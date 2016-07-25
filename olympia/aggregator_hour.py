@@ -1,9 +1,9 @@
 from olympia import models, app
 
 
-def aggregate():
-    hour_lower = _get_hour_lower_limit()
-    hour_upper = _get_hour_upper_limit()
+def aggregate(bucket):
+    hour_lower = _get_hour_lower_limit(bucket)
+    hour_upper = _get_hour_upper_limit(bucket)
 
     count_source = 0
     count_target = 0
@@ -13,14 +13,15 @@ def aggregate():
         count_target += 1
 
     result = models.AggregationLogDatetimeToHour(
-        hour_lower, hour_upper, count_source, count_target)
+        bucket, hour_lower, hour_upper, count_source, count_target)
     models.db.session.add(result)
     models.db.session.commit()
 
     app.logger.info(
-        '{} raw entries aggregated to {} hour entries. Hour range:[{}, {})'.
+        '{} raw entries aggregated to {} hour entries for bucket {}. Hour range:[{}, {})'.
         format(result.count_source,
                result.count_target,
+               result.bucket,
                result.hour_lower,
                result.hour_upper))
 
@@ -62,10 +63,12 @@ def get_log_hour_entries(hour_lower, hour_upper):
     return [models.LogHour(b, k, h, r, u, c, h[:8]) for b, k, h, r, u, c in q]
 
 
-def _get_hour_upper_limit():
+def _get_hour_upper_limit(bucket):
     ''' To be used with query, exclusive
     '''
     latest_datetime = models.LogDatetime.query. \
+        filter(
+            models.LogDatetime.bucket == bucket). \
         order_by(
             models.LogDatetime.hour.desc()). \
         first()
@@ -73,10 +76,11 @@ def _get_hour_upper_limit():
     return latest_datetime.hour if latest_datetime else None
 
 
-def _get_hour_lower_limit():
+def _get_hour_lower_limit(bucket):
     ''' To be used with query, inclusive
     '''
     last_record = models.AggregationLogDatetimeToHour.query. \
+        filter(models.AggregationLogDatetimeToHour.bucket == bucket). \
         order_by(models.AggregationLogDatetimeToHour.id.desc()). \
         first()
 
