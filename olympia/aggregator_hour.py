@@ -7,7 +7,7 @@ def aggregate(bucket):
 
     count_source = 0
     count_target = 0
-    for log_hour in get_log_hour_entries(hour_lower, hour_upper):
+    for log_hour in get_log_hour_entries(bucket, hour_lower, hour_upper):
         models.db.session.add(log_hour)
         count_source += log_hour.download_count
         count_target += 1
@@ -28,7 +28,7 @@ def aggregate(bucket):
     return result
 
 
-def get_log_hour_entries(hour_lower, hour_upper):
+def get_log_hour_entries(bucket, hour_lower, hour_upper):
     q = models.db.session.query(
         models.LogDatetime.bucket,
         models.LogDatetime.key,
@@ -36,6 +36,8 @@ def get_log_hour_entries(hour_lower, hour_upper):
         models.LogDatetime.remote_ip,
         models.LogDatetime.user_agent,
         models.db.func.count(1))
+
+    q = q.filter(models.LogDatetime.bucket == bucket)
 
     if hour_lower:
         q = q.filter(

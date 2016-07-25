@@ -43,8 +43,7 @@ def get_day_aggregation_query(bucket, upper_inclusive=False, date_lower=None,
         models.db.func.sum(
             models.LogHour.download_count).label('download_count'))
 
-    if bucket:
-        q = q.filter(models.LogHour.bucket == bucket)
+    q = q.filter(models.LogHour.bucket == bucket)
 
     if key_prefix:
         q = q.filter(models.LogHour.key.like(key_prefix + '%'))
