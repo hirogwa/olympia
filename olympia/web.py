@@ -7,8 +7,10 @@ from flask import request, jsonify
 def stat_key_by_day():
     bucket = request.args.get('bucket')
     key_prefix = request.args.get('key_prefix')
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
     assert bucket, 'bucket required'
-    result = stat_operation.key_by_date(bucket, key_prefix)
+    result = stat_operation.key_by_date(bucket, key_prefix, date_from, date_to)
     return jsonify(
         status='success', bucket=bucket, keys=result)
 
@@ -20,7 +22,8 @@ def stat_key_cumulative():
     date_from = request.args.get('date_from')
     date_to = request.args.get('date_to')
     assert bucket, 'bucket required'
-    result = stat_operation.key_cumulative(bucket, key_prefix, date_from, date_to)
+    result = stat_operation.key_cumulative(
+        bucket, key_prefix, date_from, date_to)
     return jsonify(
         status='success', bucket=bucket, keys=result)
 
